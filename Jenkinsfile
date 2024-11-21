@@ -20,9 +20,9 @@ pipeline {
 
         stage('Build and run docker image') {
             steps {
-                sh 'sudo docker build -t divasmahato/website:v1 .'
-                sh "sudo docker tag divasmahato/website:v1 divasmahato/website:develop-${env.BUILD_ID}" 
-                sh 'sudo docker run -d -p 8081:80 divasmahato/website:v1'
+                sh 'sudo docker build -t divasmahato/website:latest .'
+                sh "sudo docker tag divasmahato/website:latest divasmahato/website:develop-${env.BUILD_ID}" 
+                sh 'sudo docker run -d -p 8081:80 divasmahato/website:latest'
             } 
         }
 
@@ -33,7 +33,7 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-auth', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                         sh '''
                             sudo docker login -u ${USERNAME} -p ${PASSWORD}
-                            sudo docker push divasmahato/website:v1
+                            sudo docker push divasmahato/website:latest
                         '''
                         sh "sudo docker push divasmahato/website:develop-${env.BUILD_ID}"
                     }
