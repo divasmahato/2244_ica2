@@ -1,60 +1,51 @@
 pipeline {
     agent any
-
-    environment {
-        DOCKER_HUB_REPO = 'divasmahato/website'
-    }
-
     stages {
-        stage('Checkout Code') {
+        stage('Cleanup') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Clone Git Repo') {
             steps {
                 checkout scm
             }
         }
-
-        stage('Build Container Image') {
+        stage('Clone from repository') {
             steps {
-                script {
-                    sh 'docker build -t ${website}:v1 .'
-                }
+                git url: 'https://github.com/divasmahato/2244_ica2.git', branch: 'develop', credentialsId: 'GIT'
             }
         }
 
-        stage('Run Container') {
+        stage('Build and run docker image') {
             steps {
-                script {
-                    sh 'docker run -d --name test-container -p 8081:80 ${website}:v1'
-                }
-            }
+                sh 'sudo docker build -t divasmahato/website:latest .'
+                sh "sudo docker tag divasmahato/website:latest divasmahato/website:develop-${env.BUILD_ID}" 
+                sh 'sudo docker run -d -p 8081:80 divasmahato/website:latest'
+            } 
         }
 
-        stage('Test Website Accessibility') {
+
+        stage('Build and Push') {
             steps {
-                script {
-                    sh 'curl -I localhost:8081'
-                }
+                echo 'Building..'
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-auth', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                        sh '''
+                            sudo docker login -u ${USERNAME} -p ${PASSWORD}
+                            sudo docker push divasmahato/website:latest
+                        '''
+                        sh "sudo docker push divasmahato/website:develop-${env.BUILD_ID}"
+                    }
             }
         }
 
-        stage('Tag and Push Image') {
+        stage('testing') {
             steps {
-                script {
-                    def branchTag = "develop-${env.BUILD_ID}"
-                    sh """
-                        docker tag ${website}:latest ${website}:${v1}
-                        docker push ${website}:latest
-                        docker push ${website}:${v1}
-                    """
-                }
+                sh 'curl -I 54.81.124.45:8081'
             }
-        }
-    }
+        }
 
-    post {
-        always {
-            script {
-                sh 'docker stop test-container || true && docker rm test-container || true'
-            }
-        }
-    }
+    
+    }
 }
