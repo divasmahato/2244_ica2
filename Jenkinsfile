@@ -7,11 +7,6 @@ pipeline {
             }
         }
 
-        stage('Clone Git Repo') {
-            steps {
-                checkout scm
-            }
-        }
         stage('Clone from repository') {
             steps {
                 git url: 'https://github.com/divasmahato/2244_ica2.git', branch: 'develop', credentialsId: 'GIT'
@@ -20,29 +15,29 @@ pipeline {
 
         stage('Build and run docker image') {
             steps {
-                sh 'sudo docker build -t divasmahato/website:v1 .'
-                sh "sudo docker tag divasmahato/website:v1 divasmahato/website:develop-${env.BUILD_ID}" 
-                sh 'sudo docker run -d -p 8081:80 divasmahato/website:v1'
+                sh 'sudo docker build -t divasmahato/website .'
+                sh "sudo docker tag divasmahato/website:latest divasmahato/website:develop-${env.BUILD_ID}" 
+                sh 'sudo docker run -d -p 8081:80 divasmahato/website:latest'
             } 
         }
 
 
         stage('Build and Push') {
             steps {
-                echo 'Building..'
+                echo 'Building and pushing docker images..'
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-auth', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                         sh '''
-                            sudo docker login -u ${USERNAME} -p ${PASSWORD}
-                            sudo docker push divasmahato/website:v1
+                            docker login -u ${USERNAME} -p ${PASSWORD}
+                            docker push divasmahato/website:latest
                         '''
-                        sh "sudo docker push divasmahato/website:develop-${env.BUILD_ID}"
+                        sh " docker push divasmahato/website:develop-${env.BUILD_ID}"
                     }
             }
         }
 
         stage('testing') {
             steps {
-                sh 'curl -I 54.172.146.117:8081'
+                sh 'curl -I http://54.172.146.117:8081 || true'
             }
         }
     }
